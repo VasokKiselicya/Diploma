@@ -112,9 +112,11 @@ class SetInterpreter(object):
                         else:
                             set_values += symbol
                     else:
+                        if symbol is None:  # ( not closed
+                            raise SyntaxException("Invalid token detected")
                         set_values += symbol
 
-                print(set_values)
+                # print(set_values)
                 result = self.parse_expression(set_values)
 
             elif symbol.isalpha():
@@ -169,7 +171,7 @@ class SetInterpreter(object):
                 open_complex_factors += self.FACTOR_INCREMENT.get(symbol)
                 factor += symbol
             elif symbol == "&" and open_complex_factors == 0:
-                return self.parse_factor(factor).intersection(self.parse_term(term[idx + 1:]))
+                return self.operation(self.parse_factor(factor), self.parse_term(term[idx + 1:]), "&")
             else:
                 factor += symbol
 
@@ -184,13 +186,17 @@ class SetInterpreter(object):
 
     @staticmethod
     def operation(op1: set, op2: set, operation: str):
-        print(op1, op2, operation)
+
+        Printer.print_debug(" ".join(map(str, (op1, op2, operation))))
+
         if operation == "|":
             return op1.union(op2)
         if operation == "^":
             return op1.symmetric_difference(op2)
         if operation == "-":
             return op1.difference(op2)
+        if operation == "&":
+            return op1.intersection(op2)
 
         return set()
 

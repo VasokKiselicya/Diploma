@@ -1,6 +1,8 @@
 
 class Printer(object):
 
+    DEBUG = True
+
     CRED = '\033[91m'
     CGREEN = '\033[92m'
     CBLUE = '\033[94m'
@@ -23,3 +25,9 @@ class Printer(object):
     @classmethod
     def print_answer(cls, text):
         print("".join([cls.CBLUE, text, cls.CEND]))
+
+    @classmethod
+    def print_debug(cls, text):
+        if cls.DEBUG:
+            print("".join([cls.CGREY, text, cls.CEND]))
+
