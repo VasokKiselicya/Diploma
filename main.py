@@ -25,7 +25,7 @@ class SetInterpreter(object):
         elif statement.startswith(self.PRINT_SYMBOL):
             self.print_expression(statement)
         elif statement.startswith(self.COMMENT_SYMBOL):
-            Printer.print_comment(statement[1:])
+            Printer.print_comment(statement[1:].strip())
         else:
             raise SyntaxException
 
@@ -211,7 +211,7 @@ class SetInterpreter(object):
 
     def print_expression(self, expression):
         self.skip_token(expression, "?")
-        Printer.print_answer(", ".join(map(str, self.parse_expression(expression[1:]))))
+        Printer.print_answer(", ".join(map(str, self.parse_expression(expression[1:]))) or u"\u2205")
 
     @classmethod
     def skip_token(cls, _input, char):
