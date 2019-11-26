@@ -1,0 +1,11 @@
+<RCC>
+  <qresource prefix="/images">
+    <file alias='empty-set.jpg'>images/empty-set.jpg</file>
+    <file alias='new.png'>images/new.png</file>
+    <file alias='open.png'>images/open.png</file>
+    <file alias='save.png'>images/save.png</file>
+    <file alias='copy.png'>images/copy.png</file>
+    <file alias='cut.png'>images/cut.png</file>
+    <file alias='paste.png'>images/paste.png</file>
+  </qresource>
+</RCC>
