@@ -4,7 +4,7 @@ from PyQt5 import QtWidgets, QtGui, QtCore
 
 import resources
 
-from interpreter import interpreter
+from interpreter import SetInterpreter
 
 
 class InterpreterUI(QtWidgets.QMainWindow):
@@ -23,6 +23,9 @@ class InterpreterUI(QtWidgets.QMainWindow):
 
     def __init__(self):
         super().__init__()
+
+        self.interpreter = SetInterpreter()
+        self.interpreter_io = []
 
         self.filename = ""
         self.changes_saved = True
@@ -87,6 +90,14 @@ class InterpreterUI(QtWidgets.QMainWindow):
 
         self._toolbar.setContextMenuPolicy(QtCore.Qt.NoContextMenu)
 
+    @classmethod
+    def get_font(cls, **options):
+        font = QtGui.QFont()
+        font.setBold(options.get("bold", True))
+        font.setFamily(options.get("font", "Times New Roman"))
+        font.setPointSize(options.get("size", 20))
+        return font
+
     def build_ui(self):
 
         self._general_layout = QtWidgets.QVBoxLayout()
@@ -96,13 +107,16 @@ class InterpreterUI(QtWidgets.QMainWindow):
 
         self._input = QtWidgets.QLineEdit(self)
         self._input.setFixedHeight(35)
-        self._input.setAlignment(QtCore.Qt.AlignRight)
+        self._input.setFont(self.get_font())
+        self._input.setAlignment(QtCore.Qt.AlignLeft)
 
+        self._input.returnPressed.connect(self.input_submit)
         self._input.textChanged[str].connect(self.text_changed)
         self.text_changed("")
 
         self._output = QtWidgets.QTextEdit(self)
         self._output.setTabStopWidth(33)
+        self._output.setFont(self.get_font(size=13))
         self._output.setReadOnly(True)
 
         self._general_layout.addWidget(self._input)
@@ -113,7 +127,58 @@ class InterpreterUI(QtWidgets.QMainWindow):
         self.setGeometry(200, 50, 800, 600)
         self.setWindowTitle(self.DIPLOMA_NAME)
         self.setWindowIcon(QtGui.QIcon(self.ICON_PATH))
-        # interpreter()
+
+    def print_line(self,
+                   _text,
+                   _row,
+                   _type="in",
+                   _style="success"
+                   ):
+
+        assert _type in ("in", "out")
+        assert _style in ("success", "error")
+
+        operation_colors = {"in": "green", "out": "orange"}
+        text_colors = {
+            "default": "rgb(87, 173, 104)",
+            "error": "red",
+            "comment": "rgb(122, 122, 122)",
+        }
+        output = """
+        <span style="font-size:12pt; font-weight:700; color: {operation_color};">{operation}[{row}]: </span> 
+        <span style="font-size:12pt; font-weight:500; color: {text_color};"> {text_result}</span>
+        """.format(operation_color=operation_colors.get(_type), operation=_type.capitalize(), row=_row,
+                   text_color=text_colors.get(_style), text_result=_text)
+
+        self._output.append(output)
+
+    def clear_input(self):
+        self._input.setText("")
+
+    def input_submit(self):
+        self.run_interpretation(self._input.text())
+
+    def run_interpretation(self, _input):
+        result, success = self.interpreter(_input)
+
+        self.interpreter_io.append((_input, result))
+        operation_no = len(self.interpreter_io)
+
+        self.print_line(_input, operation_no)
+
+        if result is None:
+            return self.clear_input()
+
+        if not success:
+            self.print_line(result, operation_no, _type="out", _style="error")
+            return self.clear_input()
+
+        if _input.startswith(SetInterpreter.COMMENT_SYMBOL):
+            self._output.append("\n")
+            return self.clear_input()
+
+        self.print_line(result, operation_no, _type="out")
+        return self.clear_input()
 
     def set_input_color(self, *color):
         assert isinstance(color, (tuple, list)) and len(color) == 3
@@ -124,9 +189,9 @@ class InterpreterUI(QtWidgets.QMainWindow):
         """.format(QtGui.QColor(*color).name()))
 
     def text_changed(self, text):
-        if text.startswith(interpreter.COMMENT_SYMBOL):
-            self.set_input_color(50, 50, 50)
-        elif text.startswith(interpreter.PRINT_SYMBOL):
+        if text.startswith(SetInterpreter.COMMENT_SYMBOL):
+            self.set_input_color(122, 122, 122)
+        elif text.startswith(SetInterpreter.PRINT_SYMBOL):
             self.set_input_color(87, 173, 104)
         else:
             self.set_input_color(27, 121, 173)

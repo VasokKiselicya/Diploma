@@ -1,7 +1,5 @@
 from .core import SetInterpreter
 
 __all__ = (
-    "interpreter",
+    "SetInterpreter",
 )
-
-interpreter = SetInterpreter()

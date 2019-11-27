@@ -23,9 +23,9 @@ class SetInterpreter(object):
         if statement[0].isalpha():
             self.parse_var_assign(statement)
         elif statement.startswith(self.PRINT_SYMBOL):
-            self.print_expression(statement)
+            return self.print_expression(statement)
         elif statement.startswith(self.COMMENT_SYMBOL):
-            Printer.print_comment(statement[1:].strip())
+            return statement[1:].strip()
         else:
             raise SyntaxException
 
@@ -211,7 +211,7 @@ class SetInterpreter(object):
 
     def print_expression(self, expression):
         self.skip_token(expression, "?")
-        Printer.print_answer(", ".join(map(str, self.parse_expression(expression[1:]))) or u"\u2205")
+        return ", ".join(map(str, self.parse_expression(expression[1:]))) or u"\u2205"
 
     @classmethod
     def skip_token(cls, _input, char):
@@ -267,38 +267,11 @@ class SetInterpreter(object):
 
         return statement
 
-    def __call__(self,
-                 _input,
-                 _output):
-
+    def __call__(self, _input):
         try:
-            self.parse_statement(_input)
+            return self.parse_statement(_input), True
         except SyntaxException as e:
-            _output.write(e)
+            return e, False
         except Exception as e:
             import traceback
-            _output.write("{}\n{}".format(str(e), traceback.format_exc()))
-
-    # def __call__(self, *args, **kwargs):
-    #     Printer.print_success("Start Program: ")
-    #
-    #     while True:
-    #         try:
-    #
-    #             _input = input()
-    #
-    #             if _input.lower() == self.EXIT:
-    #                 Printer.print_success("End Program\n")
-    #                 break
-    #
-    #             self.parse_statement(_input)
-    #
-    #         except SyntaxException as e:
-    #             Printer.print_error(str(e))
-    #         except Exception as e:
-    #             import traceback
-    #             Printer.print_error("{}\n{}".format(str(e), traceback.format_exc()))
-
-
-# if __name__ == '__main__':
-#     SetInterpreter()()
+            return "{}\n{}".format(str(e), traceback.format_exc()), False
