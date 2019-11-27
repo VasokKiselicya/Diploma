@@ -13,13 +13,14 @@ class InterpreterUI(QtWidgets.QMainWindow):
 
     ICON_PATH = ":/images/empty-set.jpg"
 
-    NEW_PATH = ":/images/new.png"
     OPEN_PATH = ":/images/open.png"
     SAVE_PATH = ":/images/save.png"
 
     COPY_PATH = ":/images/copy.png"
     CUT_PATH = ":/images/cut.png"
     PASTE_PATH = ":/images/paste.png"
+
+    SAVE_FORMAT = ".sol"
 
     def __init__(self):
         super().__init__()
@@ -44,21 +45,15 @@ class InterpreterUI(QtWidgets.QMainWindow):
 
     def build_toolbar(self):
 
-        setattr(self, '_new_action', QtWidgets.QAction(QtGui.QIcon(self.NEW_PATH), "Новий файл", self))
-
-        self._new_action.setShortcut("Ctrl+N")
-        self._new_action.setStatusTip("Створити новий документ")
-        # self.newAction.triggered.connect(self.new)
-
         self._open_action = QtWidgets.QAction(QtGui.QIcon(self.OPEN_PATH), "Відкрити файл", self)
         self._open_action.setStatusTip("Відкрити існуючий документ")
         self._open_action.setShortcut("Ctrl+O")
-        # self._open_action.triggered.connect(self.open)
+        self._open_action.triggered.connect(self.open_program_and_run)
 
         self._save_action = QtWidgets.QAction(QtGui.QIcon(self.SAVE_PATH), "Зберегти", self)
         self._save_action.setStatusTip("Зберегти документ")
         self._save_action.setShortcut("Ctrl+S")
-        # self._save_action.triggered.connect(self.save)
+        self._save_action.triggered.connect(self.save_program)
 
         self._copy_action = QtWidgets.QAction(QtGui.QIcon(self.COPY_PATH), "Копіювати", self)
         self._copy_action.setStatusTip("Копіювати текст")
@@ -78,7 +73,6 @@ class InterpreterUI(QtWidgets.QMainWindow):
         self._toolbar = QtWidgets.QToolBar("Налаштування")
         self.addToolBar(QtCore.Qt.LeftToolBarArea, self._toolbar)
 
-        self._toolbar.addAction(self._new_action)
         self._toolbar.addAction(self._open_action)
         self._toolbar.addAction(self._save_action)
 
@@ -128,6 +122,70 @@ class InterpreterUI(QtWidgets.QMainWindow):
         self.setWindowTitle(self.DIPLOMA_NAME)
         self.setWindowIcon(QtGui.QIcon(self.ICON_PATH))
 
+    def closeEvent(self, event):
+
+        if self.changes_saved:
+            return event.accept()
+
+        popup = QtWidgets.QMessageBox(self)
+
+        popup.setIcon(QtWidgets.QMessageBox.Warning)
+        popup.setWindowTitle(self.DIPLOMA_NAME)
+
+        popup.setText("Додкумент змнінено!")
+
+        popup.setInformativeText("Ви бажаєте зберегти зміни?")
+
+        popup.setStandardButtons(QtWidgets.QMessageBox.Save |
+                                 QtWidgets.QMessageBox.Cancel |
+                                 QtWidgets.QMessageBox.Discard)
+
+        popup.setDefaultButton(QtWidgets.QMessageBox.Save)
+
+        answer = popup.exec_()
+
+        if answer == QtWidgets.QMessageBox.Save:
+            self.save_program()
+        elif answer == QtWidgets.QMessageBox.Discard:
+            event.accept()
+        else:
+            event.ignore()
+
+    def save_program(self):
+
+        if not self.interpreter_io:
+            return
+
+        if not self.filename:
+            self.filename = QtWidgets.QFileDialog.getSaveFileName(self, 'Зберегти файл')[0]
+
+        if self.filename:
+
+            if not self.filename.endswith(self.SAVE_FORMAT):
+                self.filename += self.SAVE_FORMAT
+
+            with open(self.filename, "w+") as file:
+                file.write("\n".join([op[0] for op in self.interpreter_io if op[2]]) + "\n")
+
+            self.changes_saved = True
+
+    def open_program_and_run(self):
+
+        self.filename = QtWidgets.QFileDialog.getOpenFileName(self, 'Відкрити файл',
+                                                              ".", "(*{})".format(self.SAVE_FORMAT))[0]
+
+        if self.filename:
+            with open(self.filename, "r") as file:
+                self.clear_all()
+                for line in file.readlines():
+                    self.run_interpretation(line.strip())
+
+    def clear_all(self):
+        self.interpreter = SetInterpreter()
+        self.interpreter_io = []
+        self.clear_input()
+        self._output.setText("")
+
     def print_line(self,
                    _text,
                    _row,
@@ -157,11 +215,12 @@ class InterpreterUI(QtWidgets.QMainWindow):
 
     def input_submit(self):
         self.run_interpretation(self._input.text())
+        self.changes_saved = False
 
     def run_interpretation(self, _input):
         result, success = self.interpreter(_input)
 
-        self.interpreter_io.append((_input, result))
+        self.interpreter_io.append((_input if not success else self.interpreter.format(_input), result, success))
         operation_no = len(self.interpreter_io)
 
         self.print_line(_input, operation_no)
