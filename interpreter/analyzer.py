@@ -1,30 +1,70 @@
+from tkinter import Tk
+
 import nltk
-from nltk.parse.generate import generate, demo_grammar
+import string
 
-# Natural Language Toolkit: code_cfg2
+from nltk.draw import CFGEditor
 
-grammar = nltk.CFG.fromstring("""
-  S -> NP VP
-  VP -> V NP | V NP PP
-  PP -> P NP
-  V -> "saw" | "ate" | "walked"
-  NP -> "John" | "Mary" | "Bob" | Det N | Det N PP
-  Det -> "a" | "an" | "the" | "my"
-  N -> "man" | "dog" | "cat" | "telescope" | "park"
-  P -> "in" | "on" | "by" | "with"
-  """)
+grammar_text = """
+  S -> assignment | print_statement | comment
+  assignment -> identifier assignment_operator expression
+  print_statement -> print_operator expression
+  comment  -> comment_operator 
+ 
+  identifier -> letter identifier_endx
+  identifier_end -> letter | number
+  
+  expression -> term additive_operator_termx
+  additive_operator_term -> additive_operator term
+
+  term -> factor multiplicative_operator_factorx
+  multiplicative_operator_factor -> multiplicative_operator factor
+ 
+  factor -> identifier | complex_factor | set
+  complex_factor -> open_factor expression close_factor
+ 
+  set -> open_set row_natural_numbers close_set
+ 
+  row_natural_numbers -> natural_number comma_numberx
+  comma_number -> comma_symbol natural_number
+     
+  natural_number -> positive_number | zero
+  positive_number -> not_zero numberx
+  number -> zero | not_zero
+ 
+  additive_operator ->  "+" | "|" | "-"
+  multiplicative_operator -> "*"
+  assignment_operator -> "="
+  print_operator -> "?"
+  comment_operator -> "#"
+  comma_symbol -> ","
+
+  open_factor -> "("
+  close_factor -> ")"
+  
+  open_set -> {open_set}
+  close_set -> {close_set}
+
+  zero -> "0"
+  not_zero -> {numbers}
+  letter -> {letters}
+  
+  """.format(
+    open_set='"{"',
+    close_set='"}"',
+    numbers="|".join(map(lambda x: '"%s"' % x, string.digits[1:])),
+    letters="|".join(map(lambda x: '"%s"' % x, string.ascii_letters)),
+)
+
+grammar = nltk.CFG.fromstring(grammar_text)
 
 if __name__ == '__main__':
-    rd_parser = nltk.RecursiveDescentParser(grammar)
-    sent = "Mary saw Bob".split()
-    for t in rd_parser.parse(sent):
-        print(t)
+    rd_parser = nltk.ChartParser(grammar)
+    res = rd_parser.parse("Set1={1,2,3}")
 
-    for sentence in generate(grammar, n=10):
-        print(' '.join(sentence))
+    print(list(res))
 
-    tree1 = nltk.Tree('NP', ['John'])
-    tree2 = nltk.Tree('NP', ['the', 'man'])
-    tree3 = nltk.Tree('VP', ['saw', tree2])
-    tree4 = nltk.Tree('S', [tree1, tree3])
-    tree4.draw()
+    top = Tk()
+    editor = CFGEditor(top, grammar, print)
+    top.mainloop()
+

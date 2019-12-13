@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
 import sys
+
 from PyQt5 import QtWidgets, QtGui, QtCore
 
-import resources
+from resources import qInitResources
 
 from interpreter import SetInterpreter
 
@@ -258,7 +259,11 @@ class InterpreterUI(QtWidgets.QMainWindow):
 
 if __name__ == '__main__':
 
+    qInitResources()
+
     app = QtWidgets.QApplication(sys.argv)
+
     ui = InterpreterUI()
     ui.show()
+
     sys.exit(app.exec_())

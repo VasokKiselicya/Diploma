@@ -288,5 +288,5 @@ class SetInterpreter(object):
                 Printer.print_error("{}\n{}".format(str(e), traceback.format_exc()))
 
 
-# if __name__ == '__main__':
-#     SetInterpreter()()
+if __name__ == '__main__':
+    SetInterpreter()()
