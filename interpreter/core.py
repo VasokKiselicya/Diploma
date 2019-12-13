@@ -130,7 +130,7 @@ class SetInterpreter(object):
                         break
 
                 identifier = self.parse_identifier(set_values)
-                if self._set_collection.get(identifier):
+                if identifier in self._set_collection:
                     result = self._set_collection[identifier]
                 else:
                     raise SyntaxException("Identifier '{}' does not correspond to a Set".format(str(identifier)))
@@ -179,7 +179,7 @@ class SetInterpreter(object):
 
     @classmethod
     def parse_set(cls, set_values):
-        set_values = set_values.split(",")
+        set_values = set_values.split(",") if set_values.strip() else []
         if not all(map(lambda x: x.isdigit(), set_values)):
             raise SyntaxException("Only digits in set allowed")
         return set(map(int, set_values))
