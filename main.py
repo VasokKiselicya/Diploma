@@ -1,8 +1,10 @@
 # -*- coding: utf-8 -*-
 import sys
+import re
 
 from PyQt5 import QtWidgets, QtGui, QtCore
 
+from analyzer.view import ANTLRTreeView
 from resources import qInitResources
 
 from interpreter import SetInterpreter
@@ -21,6 +23,8 @@ class InterpreterUI(QtWidgets.QMainWindow):
     CUT_PATH = ":/images/cut.png"
     PASTE_PATH = ":/images/paste.png"
 
+    ANALYZE_PATH = ":/images/analyze.png"
+
     SAVE_FORMAT = ".sol"
 
     def __init__(self):
@@ -37,7 +41,8 @@ class InterpreterUI(QtWidgets.QMainWindow):
         self._new_action = self._open_action = self._save_action = None
 
         self._copy_action = self._cut_action = self._paste_action = None
-        
+        self._analyze_action = None
+
         self._toolbar = None
 
         self._general_layout = self._central_widget = None
@@ -59,17 +64,16 @@ class InterpreterUI(QtWidgets.QMainWindow):
         self._copy_action = QtWidgets.QAction(QtGui.QIcon(self.COPY_PATH), "Копіювати", self)
         self._copy_action.setStatusTip("Копіювати текст")
         self._copy_action.setShortcut("Ctrl+C")
-        self._copy_action.triggered.connect(self._input.copy)
-
-        self._cut_action = QtWidgets.QAction(QtGui.QIcon(self.CUT_PATH), "Вирізати", self)
-        self._cut_action.setStatusTip("Видалити та скопіювати текст")
-        self._cut_action.setShortcut("Ctrl+X")
-        self._cut_action.triggered.connect(self._input.cut)
+        self._copy_action.triggered.connect(self._output.copy)
 
         self._paste_action = QtWidgets.QAction(QtGui.QIcon(self.PASTE_PATH), "Вставити", self)
         self._paste_action.setStatusTip("Вставити раніше скопійований текст")
         self._paste_action.setShortcut("Ctrl+V")
         self._paste_action.triggered.connect(self._input.paste)
+
+        self._analyze_action = QtWidgets.QAction(QtGui.QIcon(self.ANALYZE_PATH), "Аналізувати", self)
+        self._analyze_action.setStatusTip("Побудувати дерево розбору рядка")
+        self._analyze_action.triggered.connect(self.analyze_code)
 
         self._toolbar = QtWidgets.QToolBar("Налаштування")
         self.addToolBar(QtCore.Qt.LeftToolBarArea, self._toolbar)
@@ -82,6 +86,9 @@ class InterpreterUI(QtWidgets.QMainWindow):
         self._toolbar.addAction(self._cut_action)
         self._toolbar.addAction(self._copy_action)
         self._toolbar.addAction(self._paste_action)
+
+        self._toolbar.addSeparator()
+        self._toolbar.addAction(self._analyze_action)
 
         self._toolbar.setContextMenuPolicy(QtCore.Qt.NoContextMenu)
 
@@ -112,7 +119,8 @@ class InterpreterUI(QtWidgets.QMainWindow):
         self._output = QtWidgets.QTextEdit(self)
         self._output.setTabStopWidth(33)
         self._output.setFont(self.get_font(size=13))
-        self._output.setReadOnly(True)
+        self._output.setTextInteractionFlags(QtCore.Qt.TextSelectableByMouse |
+                                             QtCore.Qt.TextSelectableByKeyboard)
 
         self._general_layout.addWidget(self._input)
         self._general_layout.addWidget(self._output)
@@ -151,6 +159,45 @@ class InterpreterUI(QtWidgets.QMainWindow):
             event.accept()
         else:
             event.ignore()
+
+    def analyze_error_answer(self, error_text):
+        popup = QtWidgets.QMessageBox(self)
+
+        popup.setIcon(QtWidgets.QMessageBox.Warning)
+        popup.setWindowTitle(self.DIPLOMA_NAME)
+
+        popup.setText("Увага!")
+
+        popup.setInformativeText(error_text)
+
+        popup.setStandardButtons(QtWidgets.QMessageBox.Cancel)
+        popup.setDefaultButton(QtWidgets.QMessageBox.Cancel)
+        popup.exec_()
+
+    def analyze_code(self):
+        pos = self._output.textCursor().blockNumber()
+        output_lines = self._output.toPlainText().split("\n")
+
+        if pos + 1 > len(output_lines):
+            return self.analyze_error_answer("Некоректно вибраний рядок для аналізу.")
+
+        code_line = output_lines[pos]
+
+        if not re.match(r'In\[(?:\d+)\]', code_line):
+            return self.analyze_error_answer("Можливо аналізувати тільки вхідні дані.")
+
+        operation_no = int(re.findall(r'\d+', code_line)[0])
+
+        _input, _result, _success = self.interpreter_io[operation_no - 1]
+
+        if not _success:
+            return self.analyze_error_answer("Можливо аналізувати тільки вірні конструкції.")
+
+        try:
+            tk = ANTLRTreeView(_input + "\r\n")
+            tk.mainloop()
+        except Exception as e:
+            return self.analyze_error_answer(str(e))
 
     def save_program(self):
 

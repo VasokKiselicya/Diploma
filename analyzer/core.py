@@ -15,5 +15,10 @@ def get_grammar_tree(
     lexer = MyGrammarLexer(input_stream)
     stream = CommonTokenStream(lexer)
     parser = MyGrammarParser(stream)
-    tree = parser.program()
+
+    if file_path:
+        tree = parser.program()
+    else:
+        tree = parser.line()
+
     return tree, parser

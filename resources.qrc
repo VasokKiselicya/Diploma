@@ -7,5 +7,6 @@
     <file alias='copy.png'>images/copy.png</file>
     <file alias='cut.png'>images/cut.png</file>
     <file alias='paste.png'>images/paste.png</file>
+    <file alias='analyze.png'>images/analyze.png</file>
   </qresource>
 </RCC>

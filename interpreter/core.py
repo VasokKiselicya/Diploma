@@ -56,7 +56,7 @@ class SetInterpreter(object):
             elif open_complex_factors == 0 and symbol in self.ALLOWED_OPERATIONS:
 
                 if result is None:
-                    result = self.parse_term(term) or set()
+                    result = self.parse_term(term)
 
                 operator, term = symbol, ""
 
@@ -72,13 +72,16 @@ class SetInterpreter(object):
                     else:
                         term += symbol
                 if term:
-                    result = self.operation(result or set(), self.parse_term(term) or set(), operator)
+                    result = self.operation(result or set(), self.parse_term(term), operator)
 
             else:
                 term += symbol
 
         if result is None or (not result and term):
             result = self.parse_term(term)
+        # elif term and locals().get("operator"):
+        #     result = self.operation(result or set(), self.parse_term(term), locals().get("operator"))
+        #     operator = ''
 
         return result or set()
 
@@ -116,7 +119,6 @@ class SetInterpreter(object):
                             raise SyntaxException("Invalid token detected")
                         set_values += symbol
 
-                # print(set_values)
                 result = self.parse_expression(set_values)
 
             elif symbol.isalpha():
@@ -161,7 +163,7 @@ class SetInterpreter(object):
         if open_complex_factors != 0:
             raise SyntaxException("Missing parenthesis detected")
 
-        return result
+        return result or set()
 
     def parse_term(self, term):
         result, open_complex_factors, factor = set(), 0, ""
@@ -187,7 +189,7 @@ class SetInterpreter(object):
     @staticmethod
     def operation(op1: set, op2: set, operation: str):
 
-        Printer.print_debug(" ".join(map(str, (op1, op2, operation))))
+        Printer.print_error(" ".join(map(str, (op1, op2, operation, "\n"))))
 
         if operation == "|":
             return op1.union(op2)
@@ -244,6 +246,8 @@ class SetInterpreter(object):
             return code_line
 
         statement = ""
+
+        code_line = code_line.strip()
 
         for idx, symbol in enumerate(code_line):
 
