@@ -1,3 +1,5 @@
+from itertools import tee
+
 from interpreter.utils import Printer
 from interpreter.exceptions import SyntaxException
 from interpreter.identifier import Identifier
@@ -55,33 +57,36 @@ class SetInterpreter(object):
 
             elif open_complex_factors == 0 and symbol in self.ALLOWED_OPERATIONS:
 
+                operator = symbol
+
                 if result is None:
                     result = self.parse_term(term)
 
-                operator, term = symbol, ""
+                term = ""
 
                 while iter_expression.__length_hint__():
-                    symbol = next(iter_expression, None)
-                    if open_complex_factors == 0 and symbol in self.ALLOWED_OPERATIONS:
-                        result = self.operation(result or set(), self.parse_term(term) or set(), operator)
+                    iter_expression, copy_exp = tee(iter_expression)
+                    iter_expression = iter(list(iter_expression))
+
+                    if open_complex_factors == 0 and next(copy_exp, None) in self.ALLOWED_OPERATIONS:
+                        result = self.operation(result, self.parse_term(term), operator)
                         term = ""
                         break
-                    elif symbol in self.FACTOR_INCREMENT.keys():
+
+                    symbol = next(iter_expression, None)
+                    if symbol in self.FACTOR_INCREMENT.keys():
                         open_complex_factors += self.FACTOR_INCREMENT.get(symbol)
                         term += symbol
                     else:
                         term += symbol
                 if term:
-                    result = self.operation(result or set(), self.parse_term(term), operator)
+                    result = self.operation(result, self.parse_term(term), operator)
 
             else:
                 term += symbol
 
-        if result is None or (not result and term):
+        if result is None:
             result = self.parse_term(term)
-        # elif term and locals().get("operator"):
-        #     result = self.operation(result or set(), self.parse_term(term), locals().get("operator"))
-        #     operator = ''
 
         return result or set()
 
@@ -163,7 +168,7 @@ class SetInterpreter(object):
         if open_complex_factors != 0:
             raise SyntaxException("Missing parenthesis detected")
 
-        return result or set()
+        return result
 
     def parse_term(self, term):
         result, open_complex_factors, factor = set(), 0, ""
